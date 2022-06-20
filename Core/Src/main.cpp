@@ -131,7 +131,7 @@ uint32_t TimeStampTraject = 0;
 
 uint32_t TimeStampKalman = 0;
 uint64_t runtime = 0;
-float Q1=3000 ;
+float Q1=5 ;
 
 Matrix <float,3,3> A ;
 Matrix <float,3,3> P ;
@@ -186,9 +186,9 @@ float ufromposit = 0 ;
 float ErrPos[2] = {0};  // error
 float sumError = 0 ;
 
-float K_P = 36;
-float K_I = 0.038;
-float K_D = 0;
+float K_P = 6;
+float K_I = 0.031;
+float K_D = 32;
 
 float Propo;
 float Integral;
@@ -196,7 +196,7 @@ float Derivate;
 
 //////////////////////////////////// PID Velo //////////////////////////
 float ErrVelo[3] = {0};  // error
-float K_P_V = 5;
+float K_P_V = 1.5;
 float K_I_V = 0;
 float K_D_V = 0;
 float Vcontr[2] = {0};
@@ -205,7 +205,7 @@ uint32_t TimeStampPID_V=0;
 
 float u_contr = 0;
 
-
+uint32_t TimeStampdiff=0;
 uint32_t TimeDrive = 0;
 uint8_t ch;
 ////////////End Effector////////////////////////////////////
@@ -244,6 +244,7 @@ uint64_t micros();
 void Kalmanfilter();
 void Trajectory();
 void Unwrapping();
+void diffvelo();
 
 /* USER CODE END PFP */
 
@@ -385,8 +386,8 @@ int main(void)
 	  		 Unwrapping();
 	  		 Trajectory();
 	  		 Kalmanfilter();
-	  	//	 PIDPosition();
-	  		 PIDVelocity();
+	  		 PIDPosition();
+	  	//	 PIDVelocity();
 
 	  	//	 PIDzero();
 	  		 MotDrvCytron();
@@ -768,8 +769,9 @@ void GrandStatumix(){
 	default:
 	case Ready:
 		HAL_GPIO_WritePin(PLamp_Green_GPIO_Port, PLamp_Green_Pin, GPIO_PIN_SET);
-		PWMOut = 5000;
+		//PWMOut = 5000;
 		Unwrapping();
+		diffvelo();
 		Kalmanfilter();
 		if (pwr_sense == 1){grandState = emer;}
 		if (stop_sense == 0){grandState = stop;}
@@ -793,6 +795,8 @@ void GrandStatumix(){
 	case stop:
 		HAL_GPIO_WritePin(PLamp_Yellow_GPIO_Port, PLamp_Yellow_Pin, GPIO_PIN_SET);
 		PWMOut = 0;
+		X(1,0)=0;
+	    KalV = X(1,0);
 
 		if (stop_sense == 1){
 			grandState = Ready;
@@ -958,10 +962,26 @@ void Unwrapping(){
 	}
 }
 
+void diffvelo(){
+	Pos1=OutUnwrap;
+	if(micros() - TimeStampdiff>= 1000){
+		TimeStampdiff = micros();
+		if(Pos1!=Pos2){
+			DiffVelo=(Pos1-Pos2)/Dt;
+		}
+		else{
+			DiffVelo=DiffVelo;
+		}
+	//	DiffVelo=(Pos1-Pos2)/Dt;
+		Pos2=Pos1;
+
+	}
+}
+
+
 /////////////////////////// Kalman Filter///////////////////////
 void Kalmanfilter(){
 
-	 Pos1=OutUnwrap;
 	 if(micros() - TimeStampKalman >= 1000){
 		 TimeStampKalman = micros();
 		 ////////// Predict ////////////////////
@@ -981,10 +1001,6 @@ void Kalmanfilter(){
 		 KalA = X(2,0);
 		 runtime = micros()-TimeStampKalman;
 
-
-		 DiffVelo=(Pos1-Pos2)/Dt;
-		 Pos2=Pos1;
-
 	     //ErrPos[0] = TargetDeg - BinPosXI*0.006136;
 	 }
 
@@ -1001,8 +1017,8 @@ void PIDPosition(){
 	if(micros() - TimeStampPID_P >= 1000){
 		TimeStampPID_P = micros();
 
-		ErrPos[0] = OutPosition - KalP;
-
+	//	ErrPos[0] = OutPosition - KalP;
+		ErrPos[0] = OutVelocity - KalV;
 		sumError = sumError + ErrPos[0];
 
 		Propo = K_P * ErrPos[0];
@@ -1013,7 +1029,7 @@ void PIDPosition(){
 
 		ufromposit = Propo + Integral + Derivate;
 
-		//u_contr = ufromposit ;
+		u_contr = ufromposit ;
 		ErrPos[1] = ErrPos[0]; // log previous error
 	}
 }
@@ -1022,7 +1038,7 @@ void PIDVelocity(){
 
 	if(micros() - TimeStampPID_V >= 1000){
 		TimeStampPID_V = micros();
-		ErrVelo[0] = OutVelocity + ufromposit - KalV ;
+		ErrVelo[0] = OutVelocity - KalV ;
 
 		SumAll = (K_P_V + K_D_V + K_I_V)*ErrVelo[0]-(K_P_V+2*K_D_V)*ErrVelo[1]+K_D_V*ErrVelo[2] ;
 

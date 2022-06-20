@@ -1,24 +1,25 @@
 C:/gitNew/FRA262STUIII/eigen-3.4.0/Eigen/src/Core/CommaInitializer.h:121:19:XprType& Eigen::CommaInitializer<MatrixType>::finished() [with XprType = Eigen::Matrix<float, 3, 1>]	8	static
 C:/gitNew/FRA262STUIII/eigen-3.4.0/Eigen/src/Core/CommaInitializer.h:121:19:XprType& Eigen::CommaInitializer<MatrixType>::finished() [with XprType = Eigen::Matrix<float, 3, 3>]	8	static
-../Core/Src/main.cpp:403:6:void SystemClock_Config()	88	static,ignoring_inline_asm
-../Core/Src/main.cpp:826:10:uint16_t GraytoBinario(uint16_t, uint8_t)	0	static
-../Core/Src/main.cpp:848:6:void encoderSpeedReaderCycle()	16	static
-../Core/Src/main.cpp:872:6:void Speedsmoothfunc(float)	16	static
-../Core/Src/main.cpp:891:6:void Trajectory()	0	static
-../Core/Src/main.cpp:939:6:void Unwrapping()	16	static
-../Core/Src/main.cpp:995:6:void PIDPosition()	8	static
-../Core/Src/main.cpp:1021:6:void PIDVelocity()	8	static
-../Core/Src/main.cpp:1042:6:void MotDrvCytron()	16	static
-../Core/Src/main.cpp:1073:6:void IOExpenderInit()	24	static
-../Core/Src/main.cpp:1091:6:void AbsEncI2CRead(uint8_t*, uint8_t*)	32	static
-../Core/Src/main.cpp:1125:6:void HAL_GPIO_EXTI_Callback(uint16_t)	8	static
-../Core/Src/main.cpp:1154:10:uint64_t micros()	0	static
-../Core/Src/main.cpp:1157:6:void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef*)	0	static
-../Core/Src/main.cpp:1168:6:void Error_Handler()	0	static,ignoring_inline_asm
+../Core/Src/main.cpp:404:6:void SystemClock_Config()	88	static,ignoring_inline_asm
+../Core/Src/main.cpp:830:10:uint16_t GraytoBinario(uint16_t, uint8_t)	0	static
+../Core/Src/main.cpp:852:6:void encoderSpeedReaderCycle()	16	static
+../Core/Src/main.cpp:876:6:void Speedsmoothfunc(float)	16	static
+../Core/Src/main.cpp:895:6:void Trajectory()	0	static
+../Core/Src/main.cpp:943:6:void Unwrapping()	16	static
+../Core/Src/main.cpp:965:6:void diffvelo()	8	static
+../Core/Src/main.cpp:1011:6:void PIDPosition()	8	static
+../Core/Src/main.cpp:1037:6:void PIDVelocity()	8	static
+../Core/Src/main.cpp:1058:6:void MotDrvCytron()	16	static
+../Core/Src/main.cpp:1089:6:void IOExpenderInit()	24	static
+../Core/Src/main.cpp:1107:6:void AbsEncI2CRead(uint8_t*, uint8_t*)	32	static
+../Core/Src/main.cpp:1141:6:void HAL_GPIO_EXTI_Callback(uint16_t)	8	static
+../Core/Src/main.cpp:1170:10:uint64_t micros()	0	static
+../Core/Src/main.cpp:1173:6:void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef*)	0	static
+../Core/Src/main.cpp:1184:6:void Error_Handler()	0	static,ignoring_inline_asm
 C:/gitNew/FRA262STUIII/eigen-3.4.0/Eigen/src/Core/CommaInitializer.h:65:21:Eigen::CommaInitializer<MatrixType>& Eigen::CommaInitializer<MatrixType>::operator,(const Scalar&) [with XprType = Eigen::Matrix<float, 3, 3>]	16	static
 C:/gitNew/FRA262STUIII/eigen-3.4.0/Eigen/src/Core/CommaInitializer.h:65:21:Eigen::CommaInitializer<MatrixType>& Eigen::CommaInitializer<MatrixType>::operator,(const Scalar&) [with XprType = Eigen::Matrix<float, 3, 1>]	16	static
 C:/gitNew/FRA262STUIII/eigen-3.4.0/Eigen/src/Core/CommaInitializer.h:65:21:Eigen::CommaInitializer<MatrixType>& Eigen::CommaInitializer<MatrixType>::operator,(const Scalar&) [with XprType = Eigen::Matrix<float, 1, 3>]	16	static
 C:/gitNew/FRA262STUIII/eigen-3.4.0/Eigen/src/Core/AssignEvaluator.h:769:44:void Eigen::internal::call_dense_assignment_loop(DstXprType&, const SrcXprType&, const Functor&) [with DstXprType = Eigen::Matrix<float, 3, 3>; SrcXprType = Eigen::CwiseBinaryOp<Eigen::internal::scalar_sum_op<float, float>, const Eigen::Product<Eigen::Product<Eigen::Matrix<float, 3, 3>, Eigen::Matrix<float, 3, 3>, 0>, Eigen::Transpose<Eigen::Matrix<float, 3, 3> >, 0>, const Eigen::Matrix<float, 3, 3> >; Functor = Eigen::internal::assign_op<float, float>]	88	static
-../Core/Src/main.cpp:962:6:void Kalmanfilter()	104	static
-../Core/Src/main.cpp:753:6:void GrandStatumix()	32	static
-../Core/Src/main.cpp:259:5:int main()	128	static,ignoring_inline_asm
+../Core/Src/main.cpp:983:6:void Kalmanfilter()	96	static
+../Core/Src/main.cpp:754:6:void GrandStatumix()	32	static
+../Core/Src/main.cpp:260:5:int main()	128	static,ignoring_inline_asm
