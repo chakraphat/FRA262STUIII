@@ -131,7 +131,7 @@ uint32_t TimeStampTraject = 0;
 
 uint32_t TimeStampKalman = 0;
 uint64_t runtime = 0;
-float Q1=5 ;
+float Q1=10 ;
 
 Matrix <float,3,3> A ;
 Matrix <float,3,3> P ;
@@ -179,16 +179,15 @@ float CrrntTime = 0;
 uint8_t ErrPosx = 0;
 uint32_t TimeStampPID_P=0;
 
-
 float TargetDeg = 3.141*2; // target degree pid
 uint8_t bluecounter = 0;
 float ufromposit = 0 ;
 float ErrPos[2] = {0};  // error
 float sumError = 0 ;
 
-float K_P = 6;
-float K_I = 0.031;
-float K_D = 32;
+float K_P = 0;
+float K_I = 0;
+float K_D = 0;
 
 float Propo;
 float Integral;
@@ -196,9 +195,9 @@ float Derivate;
 
 //////////////////////////////////// PID Velo //////////////////////////
 float ErrVelo[3] = {0};  // error
-float K_P_V = 1.5;
-float K_I_V = 0;
-float K_D_V = 0;
+float K_P_V = 3.5;
+float K_I_V = 0.025;
+float K_D_V = 70;
 float Vcontr[2] = {0};
 float SumAll = 0;
 uint32_t TimeStampPID_V=0;
@@ -387,7 +386,7 @@ int main(void)
 	  		 Trajectory();
 	  		 Kalmanfilter();
 	  		 PIDPosition();
-	  	//	 PIDVelocity();
+	  		 PIDVelocity();
 
 	  	//	 PIDzero();
 	  		 MotDrvCytron();
@@ -894,7 +893,7 @@ void Speedsmoothfunc(float inpdat){
 //////////////////// Trajectory Path //////////////////////
 void Trajectory(){
 	//0.01 -> 0.1s
-	/*
+
 	if(micros() - TimeStampTraject >= 1000){
 		TimeStampTraject = micros();
 
@@ -935,8 +934,8 @@ void Trajectory(){
 		TimeinS = TimeinS + Dt;
 
 	 }
-	 */
-	OutVelocity = 0.523598775 ;
+
+	//OutVelocity = 0.523598775 ;
 }
 
 //////////////////////// Unwrapping ///////////////////////
@@ -1017,8 +1016,8 @@ void PIDPosition(){
 	if(micros() - TimeStampPID_P >= 1000){
 		TimeStampPID_P = micros();
 
-	//	ErrPos[0] = OutPosition - KalP;
-		ErrPos[0] = OutVelocity - KalV;
+		ErrPos[0] = OutPosition - KalP;
+	//	ErrPos[0] = OutVelocity - KalV;
 		sumError = sumError + ErrPos[0];
 
 		Propo = K_P * ErrPos[0];
@@ -1029,7 +1028,7 @@ void PIDPosition(){
 
 		ufromposit = Propo + Integral + Derivate;
 
-		u_contr = ufromposit ;
+		//u_contr = ufromposit ;
 		ErrPos[1] = ErrPos[0]; // log previous error
 	}
 }
@@ -1038,6 +1037,7 @@ void PIDVelocity(){
 
 	if(micros() - TimeStampPID_V >= 1000){
 		TimeStampPID_V = micros();
+		/*
 		ErrVelo[0] = OutVelocity - KalV ;
 
 		SumAll = (K_P_V + K_D_V + K_I_V)*ErrVelo[0]-(K_P_V+2*K_D_V)*ErrVelo[1]+K_D_V*ErrVelo[2] ;
@@ -1051,6 +1051,13 @@ void PIDVelocity(){
 		ErrVelo[2] = ErrVelo[1] ;
 
 		ErrVelo[1] = ErrVelo[0] ;
+		*/
+
+		ErrVelo[0] = OutVelocity + ufromposit - KalV;
+		SumAll = SumAll + ErrVelo[0];
+
+		u_contr = (K_P_V * ErrVelo[0])+(K_I_V * SumAll)+(K_D * (ErrVelo[0]-ErrVelo[1])) ;
+		ErrVelo[1] = ErrVelo[0]; // log previous error
 	}
 
 }
