@@ -56,8 +56,8 @@ using namespace Eigen;
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 #define CAPTURENUM 16 // sample data array size for velo
-#define POSOFFSET  0 // angle zero offset abs enc
-#define ADDR_EFFT 0x23 // End Effector Addr 0x23 0010 0011
+#define POSOFFSET -689 // angle zero offset abs enc
+#define ADDR_EFFT 0b01000110 // End Effector Addr 0x23 0010 0011
 #define ADDR_IOXT 0b01000000 // datasheet p15
 #define Dt 0.001
 /* USER CODE END PD */
@@ -89,11 +89,11 @@ uint64_t _micros = 0;
 uint8_t counter_e = 0;
 
 //////////////Abs Encoder 10 bit I2C /////////////////////////////
-uint8_t encResbit = 10;
 uint32_t timeStampSR =0;
-uint8_t RawEnBitA = 0b0, RawEnBitB = 0b0;
-uint16_t GrayCBitx = 0b0, GrayCBitXI = 0b0, BinPosx = 0b0, BinPosXI = 0b0;
-static uint8_t flag_absenc = 0;
+//uint8_t RawEnBitA = 0b0, RawEnBitB = 0b0;
+uint8_t RawEnBitAB[2] = {0b0};
+uint16_t GrayCBitXI = 0b0, BinPosXI = 0b0;
+uint8_t flag_absenc = 0;
 ////////////// velo dma input capture////////////////////
 //DMA Buffer
 uint32_t capturedata[CAPTURENUM] = { 0 };
@@ -111,7 +111,7 @@ float RoundNumnd = 0;
 float RoundNumnd_sm = 0;
 uint64_t timestampve = 0;
 ////////////PWM & Motor Driver/////////////////////////////////////////
-uint16_t PWMOut = 5000; // dytycycle = x/10000 % ,TIM4 PB6
+uint16_t PWMOut = 0; // dytycycle = x/10000 % ,TIM4 PB6
 uint32_t timestampPWM = 0;
 uint8_t mot_dirctn = 0;
 
@@ -131,7 +131,7 @@ uint32_t TimeStampTraject = 0;
 
 uint32_t TimeStampKalman = 0;
 uint64_t runtime = 0;
-float Q1=10 ;
+float Q1=15 ;
 
 Matrix <float,3,3> A ;
 Matrix <float,3,3> P ;
@@ -185,9 +185,9 @@ float ufromposit = 0 ;
 float ErrPos[2] = {0};  // error
 float sumError = 0 ;
 
-float K_P = 0;
-float K_I = 0;
-float K_D = 0;
+float K_P = 1.8;
+float K_I = 0.001;
+float K_D = 1.5;
 
 float Propo;
 float Integral;
@@ -195,9 +195,9 @@ float Derivate;
 
 //////////////////////////////////// PID Velo //////////////////////////
 float ErrVelo[3] = {0};  // error
-float K_P_V = 3.5;
-float K_I_V = 0.025;
-float K_D_V = 70;
+float K_P_V = 4.7;
+float K_I_V = 0.04125;
+float K_D_V = 500;
 float Vcontr[2] = {0};
 float SumAll = 0;
 uint32_t TimeStampPID_V=0;
@@ -230,7 +230,8 @@ static void MX_TIM4_Init(void);
 /* USER CODE BEGIN PFP */
 void IOExpenderInit();
 uint16_t GraytoBinario(uint16_t grayx,uint8_t numbit);
-void AbsEncI2CRead(uint8_t *RawRA, uint8_t *RawRB);
+//void AbsEncI2CRead(uint8_t *RawRA, uint8_t *RawRB);
+void AbsEncI2CReadx(uint8_t *RawRAB);
 void encoderSpeedReaderCycle();
 
 void GrandStatumix();
@@ -270,9 +271,9 @@ int main(void)
 	X1 << 0 ,    0    ,      0     ;
 
 
-	P << 0 , 	0 	 , 		0     ,
-	     0 ,    0    ,  	0     ,
-		 0 ,    0    ,      0     ;
+	P << 0.00001 , 			0 	 , 			0     ,
+	     0 		 ,    0.00001    ,  		0     ,
+		 0 		 ,    		0    ,      0.00001     ;
 
 	O << 0 , 	0 	 , 		0     ,
 	     0 ,    0    ,  	0     ,
@@ -342,21 +343,22 @@ int main(void)
     /* USER CODE BEGIN 3 */
 
 	  	  ///// GrandState ///////////////////
-	  	  if(micros() - TimeStampGrand >= 1000){
-	  		TimeStampGrand = micros();
-	  		GrandStatumix();
-	  	  }
+	  	  //if(micros() - TimeStampGrand >= 1000){
+	  		//TimeStampGrand = micros();
+	  	  //}
 	  	  // Encoder I2CRead
 	  	  if (micros()-timeStampSR > 1000)      // don't use 1 millisec
 	  	          {
 	  	              timeStampSR = micros();           //set new time stamp
+	  	              GrandStatumix();
 	  	              flag_absenc = 1;
+	  	              pwr_sense = HAL_GPIO_ReadPin(Pwr_Sense_GPIO_Port, Pwr_Sense_Pin);
 	  	          }
-	  	  AbsEncI2CRead(&RawEnBitA,&RawEnBitB);
+	  	  AbsEncI2CReadx(RawEnBitAB);
 	  	  encoderSpeedReaderCycle();
-	  	  pwr_sense = HAL_GPIO_ReadPin(Pwr_Sense_GPIO_Port, Pwr_Sense_Pin);
 
-	  	  ///////////////////////// speed measyre////////
+
+	 /* 	  ///////////////////////// speed measyre////////
 	  	if(micros() - timestampve >= 10000){
 	  			  timestampve = micros();
 	  			  posSpeedlog[1] = posSpeedlog[0];
@@ -365,6 +367,7 @@ int main(void)
 	  			  RoundNumnd = deltaar*100.0*60.0;
 	  			  Speedsmoothfunc(RoundNumnd);
 	  		 }
+	  		*/
 
 	  	  ///////////////////// 2KHz change PWM PB6////////////////////
 	  	 if(micros() - timestampPWM >= 500){
@@ -768,9 +771,9 @@ void GrandStatumix(){
 	default:
 	case Ready:
 		HAL_GPIO_WritePin(PLamp_Green_GPIO_Port, PLamp_Green_Pin, GPIO_PIN_SET);
-		//PWMOut = 5000;
+	//	PWMOut = 1500;
 		Unwrapping();
-		diffvelo();
+	//	diffvelo();
 		Kalmanfilter();
 		if (pwr_sense == 1){grandState = emer;}
 		if (stop_sense == 0){grandState = stop;}
@@ -1093,13 +1096,16 @@ void MotDrvCytron(){
 }
 
 /////////////////////Abs Encoder I2C////////////////////////////////////////////
+
 void IOExpenderInit() {// call when start system
 	//Init All// setting from datasheet p17 table 3.5
 	static uint8_t Setting[0x16] = {
 			0b11111111, // IODIRA 1 = in/2=0ut
 			0b11111111, // IODIRB
-			0x00, 0x00, 0x00, 0x00, 0x00,
-			0x00, 0x00, 0x00, 0x00, 0x00,
+			0b11111111, // IPOLA  1 = invert / 0  nonINV
+			0b11111111, // IPOLB
+			0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x00,
 			0x00, // GPPUA
 			0b00111111, // GPPUB Pull up 100k R
 			0x00, 0x00, 0x00, 0x00,
@@ -1110,7 +1116,7 @@ void IOExpenderInit() {// call when start system
 	HAL_I2C_Mem_Write(&hi2c1, ADDR_IOXT, 0x00, I2C_MEMADD_SIZE_8BIT, Setting,
 			0x16, 100);
 }
-
+/*
 void AbsEncI2CRead(uint8_t *RawRA, uint8_t *RawRB){
 
 	if(flag_absenc != 0 && hi2c1.State == HAL_I2C_STATE_READY){
@@ -1144,6 +1150,33 @@ void AbsEncI2CRead(uint8_t *RawRA, uint8_t *RawRB){
 		}
 	}
 }
+*/
+void AbsEncI2CReadx(uint8_t *RawRAB){
+
+	if(flag_absenc != 0 && hi2c1.State == HAL_I2C_STATE_READY){
+		switch(flag_absenc){
+		default:
+			break;
+
+		case 1:
+
+			HAL_I2C_Mem_Read(&hi2c1, ADDR_IOXT, 0x12, I2C_MEMADD_SIZE_8BIT,
+						RawRAB, 2, 100);
+			flag_absenc = 2;
+		break;
+
+		case 2:
+			//invert in IPOL
+			GrayCBitXI = (RawEnBitAB[1] << 8) | RawEnBitAB[0]; // GrayCBitx
+
+			BinPosXI = GraytoBinario(GrayCBitXI, 10) + POSOFFSET;  //
+			if (BinPosXI >= 1024){BinPosXI = BinPosXI % 1024;}
+			flag_absenc = 0;
+		break;
+		}
+	}
+}
+
 /////////////// Emer Interrupt /////////////////////////////////
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 	//// EMER ////
