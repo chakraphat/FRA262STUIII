@@ -41,6 +41,7 @@
 #define _USER_MATH_DEFINES
 #include "math.h"
 #include "arm_math.h"
+#include <cstdlib>
 
 #include <Eigen/Dense>
 
@@ -116,7 +117,7 @@ uint32_t timestampPWM = 0;
 uint8_t mot_dirctn = 0;
 
 ///////////////// Trajectory cat cat /////////////////
-float Finalposition = 3.141*2 ;
+float Finalposition = 3.141*2;
 float Velocity = 1.04719755 ;
 float Acceleration = 0.5;
 float OutPosition = 0;
@@ -125,6 +126,8 @@ float OutAcceleration = 0;
 float Tb = 0;
 float timeFinal = 0;
 float TimeinS = 0;
+float Currentpos = 0;
+int flagNewpos = 0;
 uint32_t TimeStampTraject = 0;
 
 /////////////////// Kalman cat cat //////////////////////////////
@@ -172,10 +175,6 @@ float CurrentEn = 0;
 uint32_t TimeUnwrap=0;
 
 /////////////////// PID cat cat /////////////////////////////////////////////
-
-float PreviTime = 0; // find delta T
-float DeltaTime = 0;
-float CrrntTime = 0;
 uint8_t ErrPosx = 0;
 uint32_t TimeStampPID_P=0;
 
@@ -185,19 +184,23 @@ float ufromposit = 0 ;
 float ErrPos[2] = {0};  // error
 float sumError = 0 ;
 
+float K_P = 4;
+float K_I = 0.005;
+float K_D = 2;
+/*
 float K_P = 1.8;
 float K_I = 0.001;
 float K_D = 1.5;
-
+*/
 float Propo;
 float Integral;
 float Derivate;
 
 //////////////////////////////////// PID Velo //////////////////////////
 float ErrVelo[3] = {0};  // error
-float K_P_V = 4.7;
-float K_I_V = 0.04125;
-float K_D_V = 500;
+float K_P_V = 4.57;
+float K_I_V = 0.025;
+float K_D_V = 20;
 float Vcontr[2] = {0};
 float SumAll = 0;
 uint32_t TimeStampPID_V=0;
@@ -207,6 +210,7 @@ float u_contr = 0;
 uint32_t TimeStampdiff=0;
 uint32_t TimeDrive = 0;
 uint8_t ch;
+uint8_t check=0;
 ////////////End Effector////////////////////////////////////
 // ADDR 0x23 ACK Register 0x45 : Laser On
 // ADDR 0x23 ACK Register 0x23 : Laser data read request
@@ -245,6 +249,7 @@ void Kalmanfilter();
 void Trajectory();
 void Unwrapping();
 void diffvelo();
+void controlloop();
 
 /* USER CODE END PFP */
 
@@ -271,9 +276,9 @@ int main(void)
 	X1 << 0 ,    0    ,      0     ;
 
 
-	P << 0.00001 , 			0 	 , 			0     ,
-	     0 		 ,    0.00001    ,  		0     ,
-		 0 		 ,    		0    ,      0.00001     ;
+	P << 0.000001 , 			0 	 , 			0     ,
+	     0 		 ,    0.000001    ,  		0     ,
+		 0 		 ,    		0    ,      0.000001     ;
 
 	O << 0 , 	0 	 , 		0     ,
 	     0 ,    0    ,  	0     ,
@@ -292,6 +297,7 @@ int main(void)
 	C << 1 , 0 , 0 ;
 
 	G << (Dt*Dt)/2 , Dt , 1 ;
+
 
   /* USER CODE END 1 */
 
@@ -385,14 +391,21 @@ int main(void)
 
 	  	 if (grandState ==  work){
 
+	  		 if(flagNewpos==0){
+	  		    Currentpos = CurrentEn;
+	  		    flagNewpos = 1;
+	  		 }
 	  		 Unwrapping();
 	  		 Trajectory();
+
 	  		 Kalmanfilter();
-	  		 PIDPosition();
+	  		 controlloop();
+	  		/* PIDPosition();
 	  		 PIDVelocity();
 
 	  	//	 PIDzero();
 	  		 MotDrvCytron();
+	  		 */
 	  	 }
 
   }
@@ -896,7 +909,6 @@ void Speedsmoothfunc(float inpdat){
 //////////////////// Trajectory Path //////////////////////
 void Trajectory(){
 	//0.01 -> 0.1s
-
 	if(micros() - TimeStampTraject >= 1000){
 		TimeStampTraject = micros();
 
@@ -911,25 +923,25 @@ void Trajectory(){
 		timeFinal = (4*Velocity) + ((Finalposition-(2*Velocity*Velocity))/Velocity);
 
 		if (TimeinS < Tb){
-			OutPosition = (0.5*Acceleration*TimeinS*TimeinS);
+			OutPosition = (0.5*Acceleration*TimeinS*TimeinS)+Currentpos;
 			OutVelocity = Acceleration*TimeinS;
 			OutAcceleration = Acceleration;
 			ch = 1;
 		}
 		else if(TimeinS < (timeFinal-Tb)){
-			OutPosition = (0.5*Acceleration*(Tb*Tb)) + (Velocity*(TimeinS-Tb));
+			OutPosition = (0.5*Acceleration*(Tb*Tb)) + (Velocity*(TimeinS-Tb))+Currentpos;
 			OutVelocity = Velocity;
 			OutAcceleration = 0;
 			ch = 2;
 		}
 		else if(((timeFinal-Tb) <= TimeinS) && (TimeinS <= timeFinal)){
-			OutPosition = (0.5*Acceleration*(Tb*Tb))+ (Velocity*(timeFinal-(2*Tb)))  + (Velocity*(TimeinS-(timeFinal-Tb))) - (0.5*Acceleration*((TimeinS-(timeFinal-Tb))*(TimeinS-(timeFinal-Tb))));
+			OutPosition = (0.5*Acceleration*(Tb*Tb))+ (Velocity*(timeFinal-(2*Tb)))  + (Velocity*(TimeinS-(timeFinal-Tb))) - (0.5*Acceleration*((TimeinS-(timeFinal-Tb))*(TimeinS-(timeFinal-Tb))))+Currentpos;
 			OutVelocity = Velocity-(Acceleration*(TimeinS-(timeFinal-Tb)));
 			OutAcceleration = -Acceleration;
 			ch = 3;
 		}
 		else if(TimeinS > timeFinal){
-			OutPosition = Finalposition;
+			OutPosition = Finalposition+Currentpos;
 			OutAcceleration = 0;
 			ch = 4;
 		}
@@ -1064,6 +1076,24 @@ void PIDVelocity(){
 	}
 
 }
+
+void controlloop(){
+
+	if(abs(OutPosition-KalP)<0.01 && KalV < 0.0005){
+		PWMOut=0;
+	/*	u_contr=0;
+		MotDrvCytron();
+		*/
+		check=8;
+	}
+	else{
+		PIDPosition();
+		PIDVelocity();
+		MotDrvCytron();
+	}
+}
+
+
 
 void MotDrvCytron(){
 
