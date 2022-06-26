@@ -117,9 +117,10 @@ uint32_t timestampPWM = 0;
 uint8_t mot_dirctn = 0;
 
 ///////////////// Trajectory cat cat /////////////////
-float Finalposition = 3.141*2;
-float Velocity = 1.04719755 ;
-float Acceleration = 0.5;
+float Finalposition = 0;
+float Distance = 0;
+float Velocity = 0 ;
+float Acceleration = 0;
 float OutPosition = 0;
 float OutVelocity = 0;
 float OutAcceleration = 0;
@@ -184,9 +185,15 @@ float ufromposit = 0 ;
 float ErrPos[2] = {0};  // error
 float sumError = 0 ;
 
+float K_P = 0;
+float K_I = 0;
+float K_D = 0;
+
+/*
 float K_P = 4;
 float K_I = 0.005;
 float K_D = 2;
+*/
 /*
 float K_P = 1.8;
 float K_I = 0.001;
@@ -198,9 +205,16 @@ float Derivate;
 
 //////////////////////////////////// PID Velo //////////////////////////
 float ErrVelo[3] = {0};  // error
+
+float K_P_V = 3.5;
+float K_I_V = 0.0225;
+float K_D_V = 7;
+
+/*
 float K_P_V = 4.57;
 float K_I_V = 0.025;
 float K_D_V = 20;
+*/
 float Vcontr[2] = {0};
 float SumAll = 0;
 uint32_t TimeStampPID_V=0;
@@ -390,22 +404,24 @@ int main(void)
 	  	  	  }
 
 	  	 if (grandState ==  work){
-
+	  		 Unwrapping();
 	  		 if(flagNewpos==0){
 	  		    Currentpos = CurrentEn;
+	  		    Finalposition = 300*0.006136;
+	  		    Distance = Finalposition-Currentpos;
 	  		    flagNewpos = 1;
 	  		 }
-	  		 Unwrapping();
-	  		 Trajectory();
+	  		Trajectory();
+	  		Kalmanfilter();
+	  		controlloop();
 
-	  		 Kalmanfilter();
-	  		 controlloop();
 	  		/* PIDPosition();
 	  		 PIDVelocity();
 
-	  	//	 PIDzero();
-	  		 MotDrvCytron();
-	  		 */
+	  	//	 PIDzero();*/
+	  		/* u_contr = 0;
+	  		 MotDrvCytron();*/
+
 	  	 }
 
   }
@@ -908,50 +924,64 @@ void Speedsmoothfunc(float inpdat){
 
 //////////////////// Trajectory Path //////////////////////
 void Trajectory(){
-	//0.01 -> 0.1s
+
 	if(micros() - TimeStampTraject >= 1000){
 		TimeStampTraject = micros();
 
-		if (Finalposition/Velocity > Velocity/Acceleration){
+		if (Distance > 0){
+			Velocity=1.04719755;
+			Acceleration= 0.5;
+			check = 50;
+		}
+		else if(Distance < 0){
+			Velocity=-1.04719755;
+		    Acceleration= -0.5;
+		    check = 100;
+		}
+
+		if (Distance/Velocity > Velocity/Acceleration){
 			Tb = Velocity/Acceleration;
 		}
 		else {
-			Tb = sqrt(2*Finalposition);
-			Velocity = sqrt(Finalposition/2);
+			Tb = sqrt(2*abs(Distance));
+			Velocity = sqrt(abs(Distance)/2);
 		}
 		//TimeinS = _micros/10^6;
-		timeFinal = (4*Velocity) + ((Finalposition-(2*Velocity*Velocity))/Velocity);
+		timeFinal = (4*abs(Velocity)) + ((abs(Distance)-(2*abs(Velocity)*abs(Velocity)))/abs(Velocity));
 
 		if (TimeinS < Tb){
 			OutPosition = (0.5*Acceleration*TimeinS*TimeinS)+Currentpos;
 			OutVelocity = Acceleration*TimeinS;
 			OutAcceleration = Acceleration;
 			ch = 1;
-		}
+			}
 		else if(TimeinS < (timeFinal-Tb)){
 			OutPosition = (0.5*Acceleration*(Tb*Tb)) + (Velocity*(TimeinS-Tb))+Currentpos;
 			OutVelocity = Velocity;
 			OutAcceleration = 0;
 			ch = 2;
-		}
+			}
 		else if(((timeFinal-Tb) <= TimeinS) && (TimeinS <= timeFinal)){
 			OutPosition = (0.5*Acceleration*(Tb*Tb))+ (Velocity*(timeFinal-(2*Tb)))  + (Velocity*(TimeinS-(timeFinal-Tb))) - (0.5*Acceleration*((TimeinS-(timeFinal-Tb))*(TimeinS-(timeFinal-Tb))))+Currentpos;
 			OutVelocity = Velocity-(Acceleration*(TimeinS-(timeFinal-Tb)));
 			OutAcceleration = -Acceleration;
 			ch = 3;
-		}
+			}
 		else if(TimeinS > timeFinal){
-			OutPosition = Finalposition+Currentpos;
+			OutPosition = Distance+Currentpos;
 			OutAcceleration = 0;
 			ch = 4;
-		}
+			}
 
 		TimeinS = TimeinS + Dt;
-
-	 }
-
+		}
 	//OutVelocity = 0.523598775 ;
+
 }
+
+
+
+
 
 //////////////////////// Unwrapping ///////////////////////
 void Unwrapping(){
@@ -1080,14 +1110,15 @@ void PIDVelocity(){
 void controlloop(){
 
 	if(abs(OutPosition-KalP)<0.01 && KalV < 0.0005){
-		PWMOut=0;
-	/*	u_contr=0;
+		//PWMOut=0;
+		u_contr=0;
 		MotDrvCytron();
-		*/
+		//u_contr=0;
+
 		check=8;
 	}
 	else{
-		PIDPosition();
+//		PIDPosition();
 		PIDVelocity();
 		MotDrvCytron();
 	}
@@ -1113,7 +1144,7 @@ void MotDrvCytron(){
 		}
 
 		// speed
-		PWMOut= (int)fabsf(u_contr); // Absolute int
+		PWMOut= (int) fabsf(u_contr); // Absolute int
 		if(PWMOut> 5000){
 			PWMOut = 5000; // saturate 50% gear 1:6 - 120rpm => 10rpm
 		}
@@ -1233,7 +1264,12 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 
 	//// setzero ////
 		if(GPIO_Pin == GPIO_PIN_2){
-			TargetDeg = 0 + POSOFFSET;
+		/*	Finalposition =(BinPosXI*0.006136);
+			Unwrapping();
+			Trajectory();
+			Kalmanfilter();
+			controlloop();
+		*/
 		}
 }
 ///////////////////////////////////// micro timer////////////////////////////////////
