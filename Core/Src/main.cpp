@@ -57,7 +57,7 @@ using namespace Eigen;
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 #define CAPTURENUM 16 // sample data array size for velo
-#define POSOFFSET -689 // angle zero offset abs enc
+#define POSOFFSET -846 // angle zero offset abs enc
 #define ADDR_EFFT 0b01000110 // End Effector Addr 0x23 0010 0011
 #define ADDR_IOXT 0b01000000 // datasheet p15
 #define Dt 0.001
@@ -169,7 +169,7 @@ float Pn=0;
 float P_n=0;
 float RawData=0;
 float P_max=1024*0.006136;
-float e = 0.65*1024*0.006136;
+float e = 0.6*1024*0.006136;
 float OutUnwrap = 0;
 float CurrentEn = 0;
 
@@ -185,10 +185,15 @@ float ufromposit = 0 ;
 float ErrPos[2] = {0};  // error
 float sumError = 0 ;
 
-float K_P = 0;
+float K_P = 2;
 float K_I = 0;
 float K_D = 0;
 
+/*
+float K_P = 0.5;
+float K_I = 0.005;
+float K_D = 0;
+*/
 /*
 float K_P = 4;
 float K_I = 0.005;
@@ -206,10 +211,15 @@ float Derivate;
 //////////////////////////////////// PID Velo //////////////////////////
 float ErrVelo[3] = {0};  // error
 
+float K_P_V = 4;
+float K_I_V = 0.025;
+float K_D_V = 4;
+
+/*
 float K_P_V = 3.5;
 float K_I_V = 0.0225;
 float K_D_V = 7;
-
+*/
 /*
 float K_P_V = 4.57;
 float K_I_V = 0.025;
@@ -377,7 +387,6 @@ int main(void)
 	  	  AbsEncI2CReadx(RawEnBitAB);
 	  	  encoderSpeedReaderCycle();
 
-
 	 /* 	  ///////////////////////// speed measyre////////
 	  	if(micros() - timestampve >= 10000){
 	  			  timestampve = micros();
@@ -407,20 +416,24 @@ int main(void)
 	  		 Unwrapping();
 	  		 if(flagNewpos==0){
 	  		    Currentpos = CurrentEn;
-	  		    Finalposition = 300*0.006136;
+	  		    Finalposition = 0*0.006136;
 	  		    Distance = Finalposition-Currentpos;
 	  		    flagNewpos = 1;
 	  		 }
+
+
 	  		Trajectory();
 	  		Kalmanfilter();
 	  		controlloop();
 
+
 	  		/* PIDPosition();
 	  		 PIDVelocity();
-
+	         PWMOut = 5000;
+	  		 MotDrvCytron();
 	  	//	 PIDzero();*/
 	  		/* u_contr = 0;
-	  		 MotDrvCytron();*/
+	  		*/
 
 	  	 }
 
@@ -974,9 +987,9 @@ void Trajectory(){
 			}
 
 		TimeinS = TimeinS + Dt;
-		}
-	//OutVelocity = 0.523598775 ;
 
+		//OutVelocity = 0.523598775 ;
+		}
 }
 
 
@@ -1109,19 +1122,27 @@ void PIDVelocity(){
 
 void controlloop(){
 
-	if(abs(OutPosition-KalP)<0.01 && KalV < 0.0005){
-		//PWMOut=0;
-		u_contr=0;
-		MotDrvCytron();
+
+	if(abs(Finalposition-KalP) < 0.005 && KalV < 0.0005){
+		PWMOut=0;
+	//	MotDrvCytron();
 		//u_contr=0;
 
-		check=8;
+		//u_contr=0;
+		//flagNewpos = 0;
+		ch=8;
 	}
 	else{
-//		PIDPosition();
+		PIDPosition();
 		PIDVelocity();
 		MotDrvCytron();
 	}
+
+
+/*
+	PIDVelocity();
+	MotDrvCytron();
+*/
 }
 
 
