@@ -60,7 +60,7 @@ using namespace Eigen;
 #define POSOFFSET -846 // angle zero offset abs enc
 #define ADDR_EFFT 0b01000110 // End Effector Addr 0x23 0010 0011
 #define ADDR_IOXT 0b01000000 // datasheet p15
-#define Dt 0.001
+#define Dt 0.01
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -135,7 +135,7 @@ uint32_t TimeStampTraject = 0;
 
 uint32_t TimeStampKalman = 0;
 uint64_t runtime = 0;
-float Q1=15 ;
+float Q1=2000 ;
 
 Matrix <float,3,3> A ;
 Matrix <float,3,3> P ;
@@ -184,16 +184,16 @@ uint8_t bluecounter = 0;
 float ufromposit = 0 ;
 float ErrPos[2] = {0};  // error
 float sumError = 0 ;
+/*
+float K_P = 0;
+float K_I = 0;
+float K_D = 0;
+*/
 
-float K_P = 2;
+float K_P = 0;
 float K_I = 0;
 float K_D = 0;
 
-/*
-float K_P = 0.5;
-float K_I = 0.005;
-float K_D = 0;
-*/
 /*
 float K_P = 4;
 float K_I = 0.005;
@@ -211,9 +211,16 @@ float Derivate;
 //////////////////////////////////// PID Velo //////////////////////////
 float ErrVelo[3] = {0};  // error
 
-float K_P_V = 4;
-float K_I_V = 0.025;
-float K_D_V = 4;
+float K_P_V = 2.3;
+float K_I_V = 0.32225;
+float K_D_V = 20;
+
+
+/*
+float K_P_V = 5.5;
+float K_I_V = 0.0225;
+float K_D_V = 10;
+*/
 
 /*
 float K_P_V = 3.5;
@@ -312,7 +319,7 @@ int main(void)
 		 0 , 1 , 0 ,
 		 0 , 0 , 1 ;
 
-	R << pow(10,1); ;
+	R << pow(10,-1); ;
 
 	D << 0 ;
 
@@ -373,19 +380,20 @@ int main(void)
     /* USER CODE BEGIN 3 */
 
 	  	  ///// GrandState ///////////////////
-	  	  //if(micros() - TimeStampGrand >= 1000){
-	  		//TimeStampGrand = micros();
-	  	  //}
+	  	  if(micros() - TimeStampGrand >= 1000){
+	  		TimeStampGrand = micros();
+	  		GrandStatumix();
+	  	  }
 	  	  // Encoder I2CRead
-	  	  if (micros()-timeStampSR > 1000)      // don't use 1 millisec
+	  	  if (micros()-timeStampSR > 5000)      // don't use 1 millisec
 	  	          {
 	  	              timeStampSR = micros();           //set new time stamp
-	  	              GrandStatumix();
+
 	  	              flag_absenc = 1;
 	  	              pwr_sense = HAL_GPIO_ReadPin(Pwr_Sense_GPIO_Port, Pwr_Sense_Pin);
 	  	          }
 	  	  AbsEncI2CReadx(RawEnBitAB);
-	  	  encoderSpeedReaderCycle();
+	  //	  encoderSpeedReaderCycle();
 
 	 /* 	  ///////////////////////// speed measyre////////
 	  	if(micros() - timestampve >= 10000){
@@ -416,7 +424,7 @@ int main(void)
 	  		 Unwrapping();
 	  		 if(flagNewpos==0){
 	  		    Currentpos = CurrentEn;
-	  		    Finalposition = 0*0.006136;
+	  		    Finalposition = 1020*0.006136;
 	  		    Distance = Finalposition-Currentpos;
 	  		    flagNewpos = 1;
 	  		 }
@@ -938,7 +946,7 @@ void Speedsmoothfunc(float inpdat){
 //////////////////// Trajectory Path //////////////////////
 void Trajectory(){
 
-	if(micros() - TimeStampTraject >= 1000){
+	if(micros() - TimeStampTraject >= 10000){
 		TimeStampTraject = micros();
 
 		if (Distance > 0){
@@ -987,6 +995,8 @@ void Trajectory(){
 			}
 
 		TimeinS = TimeinS + Dt;
+
+
 
 		//OutVelocity = 0.523598775 ;
 		}
@@ -1039,7 +1049,7 @@ void diffvelo(){
 /////////////////////////// Kalman Filter///////////////////////
 void Kalmanfilter(){
 
-	 if(micros() - TimeStampKalman >= 1000){
+	 if(micros() - TimeStampKalman >= 10000){
 		 TimeStampKalman = micros();
 		 ////////// Predict ////////////////////
 		 Q = G*Q1*G.transpose();
@@ -1071,7 +1081,7 @@ void PIDPosition(){
 	//DeltaTime = (CrrntTime - PreviTime) / 1000000.0; // seconds
 	PreviTime = CrrntTime; // log previ here for next loop
 	*/
-	if(micros() - TimeStampPID_P >= 1000){
+	if(micros() - TimeStampPID_P >= 10000){
 		TimeStampPID_P = micros();
 
 		ErrPos[0] = OutPosition - KalP;
@@ -1093,7 +1103,7 @@ void PIDPosition(){
 
 void PIDVelocity(){
 
-	if(micros() - TimeStampPID_V >= 1000){
+	if(micros() - TimeStampPID_V >= 10000){
 		TimeStampPID_V = micros();
 		/*
 		ErrVelo[0] = OutVelocity - KalV ;
@@ -1150,14 +1160,14 @@ void controlloop(){
 void MotDrvCytron(){
 
 	//   direction chk
-	if(micros() - TimeDrive >= 1000){
+	if(micros() - TimeDrive >= 10000){
 		TimeDrive = micros();
 		u_contr = u_contr*833.3;
 		// u_contr = 2500;
-		if(u_contr < 0){
+		if(u_contr > 0){
 			mot_dirctn= 1;
 		}
-		else if(u_contr > 0) {
+		else if(u_contr < 0) {
 			mot_dirctn = 0;
 		}
 		else{
@@ -1236,6 +1246,18 @@ void AbsEncI2CRead(uint8_t *RawRA, uint8_t *RawRB){
 void AbsEncI2CReadx(uint8_t *RawRAB){
 
 	if(flag_absenc != 0 && hi2c1.State == HAL_I2C_STATE_READY){
+
+/*
+		HAL_I2C_Mem_Read(&hi2c1, ADDR_IOXT, 0x12, I2C_MEMADD_SIZE_8BIT, RawRAB, 2, 100);
+
+		GrayCBitXI = (RawEnBitAB[1] << 8) | RawEnBitAB[0]; // GrayCBitx
+
+		BinPosXI =1023- (GraytoBinario(GrayCBitXI, 10) + POSOFFSET);  //
+		if (BinPosXI >= 1024){BinPosXI = BinPosXI % 1024;}
+		flag_absenc = 0;*/
+
+
+
 		switch(flag_absenc){
 		default:
 			break;
@@ -1251,11 +1273,14 @@ void AbsEncI2CReadx(uint8_t *RawRAB){
 			//invert in IPOL
 			GrayCBitXI = (RawEnBitAB[1] << 8) | RawEnBitAB[0]; // GrayCBitx
 
-			BinPosXI = GraytoBinario(GrayCBitXI, 10) + POSOFFSET;  //
+			BinPosXI = 1023- (GraytoBinario(GrayCBitXI, 10) + POSOFFSET);  //
 			if (BinPosXI >= 1024){BinPosXI = BinPosXI % 1024;}
 			flag_absenc = 0;
 		break;
+
+
 		}
+
 	}
 }
 
