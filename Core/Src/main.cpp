@@ -40,7 +40,6 @@
 /* USER CODE BEGIN Includes */
 #define _USER_MATH_DEFINES
 #include "math.h"
-#include "arm_math.h"
 #include <cstdlib>
 
 #include <Eigen/Dense>
@@ -57,7 +56,7 @@ using namespace Eigen;
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 #define CAPTURENUM 16 // sample data array size for velo
-#define POSOFFSET -846 // angle zero offset abs enc
+#define POSOFFSET -900 // angle zero offset abs enc
 #define ADDR_EFFT 0b01000110 // End Effector Addr 0x23 0010 0011
 #define ADDR_IOXT 0b01000000 // datasheet p15
 #define Dt 0.01
@@ -131,11 +130,16 @@ float Currentpos = 0;
 int flagNewpos = 0;
 uint32_t TimeStampTraject = 0;
 
+float a0 = 0;
+float a3 = 0;
+float a4 = 0;
+float a5 = 0;
+
 /////////////////// Kalman cat cat //////////////////////////////
 
 uint32_t TimeStampKalman = 0;
 uint64_t runtime = 0;
-float Q1=2000 ;
+float Q1=1000 ;
 
 Matrix <float,3,3> A ;
 Matrix <float,3,3> P ;
@@ -190,13 +194,13 @@ float K_I = 0;
 float K_D = 0;
 */
 
-float K_P = 0;
+float K_P = 0.02;
 float K_I = 0;
 float K_D = 0;
 
 /*
 float K_P = 4;
-float K_I = 0.005;
+float K_I = 0.006;
 float K_D = 2;
 */
 /*
@@ -211,10 +215,17 @@ float Derivate;
 //////////////////////////////////// PID Velo //////////////////////////
 float ErrVelo[3] = {0};  // error
 
+
+float K_P_V = 2;
+float K_I_V = 0.215;
+float K_D_V = 1.65;
+
+/*
+  float K_I_V = 0.3222225;
 float K_P_V = 2.3;
 float K_I_V = 0.32225;
 float K_D_V = 20;
-
+*/
 
 /*
 float K_P_V = 5.5;
@@ -319,7 +330,7 @@ int main(void)
 		 0 , 1 , 0 ,
 		 0 , 0 , 1 ;
 
-	R << pow(10,-1); ;
+	R << pow(10,0); ;
 
 	D << 0 ;
 
@@ -385,7 +396,7 @@ int main(void)
 	  		GrandStatumix();
 	  	  }
 	  	  // Encoder I2CRead
-	  	  if (micros()-timeStampSR > 5000)      // don't use 1 millisec
+	  	  if (micros()-timeStampSR > 10000)      // don't use 1 millisec
 	  	          {
 	  	              timeStampSR = micros();           //set new time stamp
 
@@ -423,12 +434,12 @@ int main(void)
 	  	 if (grandState ==  work){
 	  		 Unwrapping();
 	  		 if(flagNewpos==0){
-	  		    Currentpos = CurrentEn;
-	  		    Finalposition = 1020*0.006136;
+	  		   // Currentpos = CurrentEn;
+	  			Currentpos = 0*0.006136;
+	  		    Finalposition = 1022*0.006136;
 	  		    Distance = Finalposition-Currentpos;
 	  		    flagNewpos = 1;
 	  		 }
-
 
 	  		Trajectory();
 	  		Kalmanfilter();
@@ -968,9 +979,19 @@ void Trajectory(){
 			Velocity = sqrt(abs(Distance)/2);
 		}
 		//TimeinS = _micros/10^6;
+
 		timeFinal = (4*abs(Velocity)) + ((abs(Distance)-(2*abs(Velocity)*abs(Velocity)))/abs(Velocity));
 
-		if (TimeinS < Tb){
+		a0 = Currentpos;
+		a3 = (1/(2*pow(timeFinal,3)))*(20*Distance);
+		a4 = (1/(2*pow(timeFinal,4)))*(30*(Currentpos-Finalposition));
+		a5 = (1/(2*pow(timeFinal,5)))*(12*Distance);
+
+		OutPosition = a0+(a3*pow(TimeinS,3))+(a4*pow(TimeinS,4))+(a5*pow(TimeinS,5));
+		OutVelocity = (3*a3*pow(TimeinS,2))+(4*a4*pow(TimeinS,3))+(5*a5*pow(TimeinS,4));
+
+
+		/*if (TimeinS < Tb){
 			OutPosition = (0.5*Acceleration*TimeinS*TimeinS)+Currentpos;
 			OutVelocity = Acceleration*TimeinS;
 			OutAcceleration = Acceleration;
@@ -994,11 +1015,13 @@ void Trajectory(){
 			ch = 4;
 			}
 
+*/
+
 		TimeinS = TimeinS + Dt;
 
 
 
-		//OutVelocity = 0.523598775 ;
+	//	OutVelocity = 0.523598775 ;
 		}
 }
 
@@ -1009,7 +1032,7 @@ void Trajectory(){
 //////////////////////// Unwrapping ///////////////////////
 void Unwrapping(){
 
-	if(micros() - TimeUnwrap >= 1000){
+	if(micros() - TimeUnwrap >= 10000){
 		TimeUnwrap = micros();
 		Pn=BinPosXI*0.006136;
 		if(Pn-P_n <= -1*e){
@@ -1124,7 +1147,7 @@ void PIDVelocity(){
 		ErrVelo[0] = OutVelocity + ufromposit - KalV;
 		SumAll = SumAll + ErrVelo[0];
 
-		u_contr = (K_P_V * ErrVelo[0])+(K_I_V * SumAll)+(K_D * (ErrVelo[0]-ErrVelo[1])) ;
+		u_contr = (K_P_V * ErrVelo[0])+(K_I_V * SumAll)+( K_D*(ErrVelo[0]-ErrVelo[1])) ;
 		ErrVelo[1] = ErrVelo[0]; // log previous error
 	}
 
@@ -1135,7 +1158,7 @@ void controlloop(){
 
 	if(abs(Finalposition-KalP) < 0.005 && KalV < 0.0005){
 		PWMOut=0;
-	//	MotDrvCytron();
+		MotDrvCytron();
 		//u_contr=0;
 
 		//u_contr=0;
@@ -1199,7 +1222,7 @@ void IOExpenderInit() {// call when start system
 			0x00, 0x00, 0x00, 0x00,
 			0x00, 0x00, 0x00, 0x00,
 			0x00, // GPPUA
-			0b00111111, // GPPUB Pull up 100k R
+			0x00, // GPPUB Pull up 100k R
 			0x00, 0x00, 0x00, 0x00,
 			0x00, // 0x12 GPIOA
 			0x00, // 0x13 GPIOB
@@ -1247,17 +1270,17 @@ void AbsEncI2CReadx(uint8_t *RawRAB){
 
 	if(flag_absenc != 0 && hi2c1.State == HAL_I2C_STATE_READY){
 
-/*
+
 		HAL_I2C_Mem_Read(&hi2c1, ADDR_IOXT, 0x12, I2C_MEMADD_SIZE_8BIT, RawRAB, 2, 100);
 
 		GrayCBitXI = (RawEnBitAB[1] << 8) | RawEnBitAB[0]; // GrayCBitx
 
 		BinPosXI =1023- (GraytoBinario(GrayCBitXI, 10) + POSOFFSET);  //
 		if (BinPosXI >= 1024){BinPosXI = BinPosXI % 1024;}
-		flag_absenc = 0;*/
+		flag_absenc = 0;
 
 
-
+/*
 		switch(flag_absenc){
 		default:
 			break;
@@ -1280,6 +1303,7 @@ void AbsEncI2CReadx(uint8_t *RawRAB){
 
 
 		}
+*/
 
 	}
 }
