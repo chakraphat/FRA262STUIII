@@ -981,6 +981,7 @@ void Trajectory(){
 		//TimeinS = _micros/10^6;
 
 		timeFinal = (4*abs(Velocity)) + ((abs(Distance)-(2*abs(Velocity)*abs(Velocity)))/abs(Velocity));
+		/*timeFinal = (Distance*2)/Velocity;
 
 		a0 = Currentpos;
 		a3 = (1/(2*pow(timeFinal,3)))*(20*Distance);
@@ -989,9 +990,9 @@ void Trajectory(){
 
 		OutPosition = a0+(a3*pow(TimeinS,3))+(a4*pow(TimeinS,4))+(a5*pow(TimeinS,5));
 		OutVelocity = (3*a3*pow(TimeinS,2))+(4*a4*pow(TimeinS,3))+(5*a5*pow(TimeinS,4));
-
-
-		/*if (TimeinS < Tb){
+*/
+/*
+		if (TimeinS < Tb){
 			OutPosition = (0.5*Acceleration*TimeinS*TimeinS)+Currentpos;
 			OutVelocity = Acceleration*TimeinS;
 			OutAcceleration = Acceleration;
@@ -1014,7 +1015,6 @@ void Trajectory(){
 			OutAcceleration = 0;
 			ch = 4;
 			}
-
 */
 
 		TimeinS = TimeinS + Dt;
@@ -1309,9 +1309,10 @@ void AbsEncI2CReadx(uint8_t *RawRAB){
 }
 
 /////////////// Emer Interrupt /////////////////////////////////
+
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 	//// EMER ////
-	if(GPIO_Pin == GPIO_PIN_11){
+/*	if(GPIO_Pin == GPIO_PIN_11){
 		HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
 		counter_e++;
 		grandState = emer;
@@ -1326,7 +1327,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
 		if(grandState == work){grandState = stopnd;}
 		//else{grandState = stop;}
 
-		}
+		}*/
 	//// work ////
 	if(GPIO_Pin == GPIO_PIN_13){
 		bluecounter++;

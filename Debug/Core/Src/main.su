@@ -4,7 +4,7 @@ C:/gitNew/FRA262STUIII/eigen-3.4.0/Eigen/src/Core/CommaInitializer.h:121:19:XprT
 ../Core/Src/main.cpp:893:10:uint16_t GraytoBinario(uint16_t, uint8_t)	0	static
 ../Core/Src/main.cpp:915:6:void encoderSpeedReaderCycle()	16	static
 ../Core/Src/main.cpp:939:6:void Speedsmoothfunc(float)	16	static
-../Core/Src/main.cpp:958:6:void Trajectory()	88	static
+../Core/Src/main.cpp:958:6:void Trajectory()	16	static
 ../Core/Src/main.cpp:1033:6:void Unwrapping()	16	static
 ../Core/Src/main.cpp:1055:6:void diffvelo()	8	static
 ../Core/Src/main.cpp:1101:6:void PIDPosition()	8	static
@@ -13,10 +13,10 @@ C:/gitNew/FRA262STUIII/eigen-3.4.0/Eigen/src/Core/CommaInitializer.h:121:19:XprT
 ../Core/Src/main.cpp:1156:6:void controlloop()	16	static
 ../Core/Src/main.cpp:1215:6:void IOExpenderInit()	24	static
 ../Core/Src/main.cpp:1269:6:void AbsEncI2CReadx(uint8_t*)	32	static
-../Core/Src/main.cpp:1312:6:void HAL_GPIO_EXTI_Callback(uint16_t)	8	static
-../Core/Src/main.cpp:1346:10:uint64_t micros()	0	static
-../Core/Src/main.cpp:1349:6:void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef*)	0	static
-../Core/Src/main.cpp:1360:6:void Error_Handler()	0	static,ignoring_inline_asm
+../Core/Src/main.cpp:1313:6:void HAL_GPIO_EXTI_Callback(uint16_t)	0	static
+../Core/Src/main.cpp:1347:10:uint64_t micros()	0	static
+../Core/Src/main.cpp:1350:6:void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef*)	0	static
+../Core/Src/main.cpp:1361:6:void Error_Handler()	0	static,ignoring_inline_asm
 C:/gitNew/FRA262STUIII/eigen-3.4.0/Eigen/src/Core/CommaInitializer.h:65:21:Eigen::CommaInitializer<MatrixType>& Eigen::CommaInitializer<MatrixType>::operator,(const Scalar&) [with XprType = Eigen::Matrix<float, 3, 3>]	16	static
 C:/gitNew/FRA262STUIII/eigen-3.4.0/Eigen/src/Core/CommaInitializer.h:65:21:Eigen::CommaInitializer<MatrixType>& Eigen::CommaInitializer<MatrixType>::operator,(const Scalar&) [with XprType = Eigen::Matrix<float, 3, 1>]	16	static
 C:/gitNew/FRA262STUIII/eigen-3.4.0/Eigen/src/Core/CommaInitializer.h:65:21:Eigen::CommaInitializer<MatrixType>& Eigen::CommaInitializer<MatrixType>::operator,(const Scalar&) [with XprType = Eigen::Matrix<float, 1, 3>]	16	static
